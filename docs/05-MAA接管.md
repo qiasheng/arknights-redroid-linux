@@ -34,7 +34,36 @@ MAA 控制游戏的原理很简单：调用 `adb.exe` 截图、发触摸事件�
 └── debug/
 ```
 
-**必须完整解压。** 少解压文件会在启动时弹「安装文件缺失，检测到 419 个文件缺失」——我们遇到过，原因是解压不完整（少了 `Res/Backgrounds` 和 `resource/copilot/old` 里的东西）。这个弹窗可以点「暂不处理，继续启动」，不影响核心功能，但最好重新解压一次。
+**必须完整解压。** 如果启动时弹「安装文件缺失，检测到 419 个文件缺失」，先别急着重下——很可能是**文件名乱码**，不是文件真的缺。看目录里有没有这种名字：
+
+```
+DependencySetup_ф╛Эш╡Цх║УхоЙшгЕ.bat
+Res/Backgrounds/Wallpapers/чЙЫчЙЫшбицГЕхМЕ1/
+resource/copilot/old/цЦ╜ф╜йх░Фх▒▒шДЪ_...
+```
+
+有的话，说明解压器把 ZIP 里的 UTF-8 文件名当成 CP866 解码了（Wine 里的更新器/解压工具常见）。文件内容是全的，只是名字坏了，MAA 对照 `filelist.txt` 找不到这些名字，就报「缺失」。
+
+修复：
+
+```bash
+python3 scripts/fix-maa-filenames.py            # 先预览
+python3 scripts/fix-maa-filenames.py --apply    # 实际重命名
+```
+
+脚本只改文件名，不动内容，最后会用 `filelist.txt` 校验，期望输出：
+
+```
+filelist 条目: 10239，缺失: 0
+```
+
+然后重启 MAA，日志里应该出现：
+
+```
+Integrity check passed, 9713 file(s) verified
+```
+
+这个弹窗本身可以点「暂不处理，继续启动」，不影响核心任务，但修好之后不会再烦你。
 
 > MAA 是绿色版，配置存在程序目录的 `config/`（便携模式），不在 Wine 的 `AppData` 里。升级时把旧目录的 `config/`、`data/`、`debug/` 复制到新目录即可。
 
@@ -253,7 +282,7 @@ lutris lutris:rungameid/1794300000
 | 截图全黑 | 屏幕休眠 / 分辨率不对 | `svc power stayon true`；确认 16:9 |
 | 能截图但点不动 | 触控模式不对 | 换 `MiniTouch` / `MaaTouch` / `ADB` 逐个试 |
 | 点开始后一直「连接中」 | 容器里游戏没起 / adb 掉线 | `adb devices`、`pidof`、看 MAA 日志 |
-| 提示 419 个文件缺失 | 解压不完整 | 重新解压完整包，保留 `config/` |
+| 提示 419 个文件缺失 | 文件名被按 CP866 解码（不是真缺文件） | `python3 scripts/fix-maa-filenames.py --apply` |
 | GPU 警告 `驱动信息无法读取` | Wine 读不到 AMD 驱动版本 | 可忽略，实测 OCR/推理正常 |
 | MAA 更新失败 | `MAA.Updater.exe` 在 Wine 下不稳定 | 手动下载完整包，覆盖时保留 `config/` |
 
