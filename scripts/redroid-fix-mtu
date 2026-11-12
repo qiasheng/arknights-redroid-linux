@@ -1,0 +1,37 @@
+#!/bin/sh
+# 把 redroid 容器网络对齐到 WAN 实际 MTU（PPPoE 1492），避免容器按 1500 发包被丢。
+#
+# 用法:
+#   sudo redroid-fix-mtu [容器名]
+#   sudo MTU=1492 redroid-fix-mtu redroid-arknights
+#
+# 需要 root：要改 podman0 和容器 netns 里的 eth0。
+# 每次容器 restart / 宿主重启后都要重跑（幂等）。
+
+set -e
+
+NAME="${1:-redroid-arknights}"
+MTU="${MTU:-1492}"
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "redroid-fix-mtu: 需要 root（sudo）" >&2
+    exit 1
+fi
+
+# 等容器真正跑起来并拿到 PID（最多 30 秒）
+i=0
+PID=""
+while [ "$i" -lt 30 ]; do
+    PID=$(podman inspect -f '{{.State.Pid}}' "$NAME" 2>/dev/null || true)
+    case "$PID" in
+        ''|0) PID=""; sleep 1 ;;
+        *) break ;;
+    esac
+    i=$((i + 1))
+done
+[ -n "$PID" ] || { echo "redroid-fix-mtu: 容器 $NAME 未运行" >&2; exit 1; }
+
+ip link set podman0 mtu "$MTU" 2>/dev/null || true
+nsenter -t "$PID" -n ip link set eth0 mtu "$MTU"
+
+echo "redroid-fix-mtu: $NAME eth0=$(nsenter -t "$PID" -n ip -o link show eth0 | sed -n 's/.*mtu \([0-9]*\).*/\1/p') podman0=$(cat /sys/class/net/podman0/mtu 2>/dev/null)"
