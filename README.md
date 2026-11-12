@@ -199,6 +199,7 @@ adb -s 127.0.0.1:5556 logcat -d -b all | grep -iE 'arknights|tprt|ace|GP7|ndk_tr
 | [docs/07-踩坑记录.md](docs/07-踩坑记录.md) | 走过的弯路，以及为什么那些方向是错的 |
 | [scripts/start-arknights.sh](scripts/start-arknights.sh) | 一键：起容器 + 补网络/设置 + 校验 + 可选起游戏 |
 | [scripts/fix-fingerprint.sh](scripts/fix-fingerprint.sh) | 修复指纹（**必做**），带备份、校验、重启 |
+| [scripts/fix-maa-filenames.py](scripts/fix-maa-filenames.py) | 修复 MAA 的「419 个文件缺失」（中文名被按 CP866 解码） |
 | [scripts/redroid-fix-mtu](scripts/redroid-fix-mtu) | 把 `podman0` 和容器 `eth0` 的 MTU 改成 1492 |
 
 ---
