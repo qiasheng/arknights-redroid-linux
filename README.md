@@ -36,6 +36,24 @@ MAA 只做两件事：通过 ADB 截图、通过 ADB 发送触摸事件。它不
 
 ---
 
+## 怎么用这个仓库
+
+```bash
+git clone https://github.com/qiasheng/arknights-redroid-linux.git
+cd arknights-redroid-linux
+chmod +x scripts/*
+```
+
+文档里的 `<you>` 指你的 Linux 用户名；`~/` 指你的 home。建议阅读顺序：
+
+1. 先通读 [01](docs/01-环境与容器.md) 和 [02](docs/02-反外挂与指纹.md)，把容器和指纹搞定；
+2. 遇到下载问题看 [03](docs/03-网络与MTU.md)；
+3. 第一次手动进游戏看 [04](docs/04-启动流程与坐标.md)；
+4. 最后配 [05](docs/05-MAA接管.md)；
+5. 出问题查 [06](docs/06-排错手册.md)，想少走弯路看 [07](docs/07-踩坑记录.md)。
+
+---
+
 ## 30 秒速查
 
 ```bash
