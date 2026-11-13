@@ -255,7 +255,12 @@ HTTP: OK GET https://codeload.github.com/MaaAssistantArknights/MaaResource/zip/r
 Remove download temp file X:\Games\MAA\MaaResourceGithub.zip.temp
 ```
 
-如果 `140.82.112.9` 不通，可以试 `140.82.113.9` / `140.82.114.9`（同一组 codeload 节点）。这不是 Lutris 的问题，Lutris 只负责启动 Wine。
+如果 `140.82.112.9` 不通，可以试 `140.82.113.9` / `140.82.114.9`（同一组 codeload 节点）。
+
+> **如果你有 GitHub hosts 自动测速脚本**：不要让脚本用 `github.com` 的最优 IP 去覆盖 `codeload.github.com`。这两个域名不是同一组节点，`20.205.243.166` 这类网页节点会给 codeload 的 zip 请求返回 301 → 404。  
+> 本文机器上 `github-release-hosts.sh` 已在开头加了 `ensure_codeload` 保护（每 15 分钟校正一次），`github-hosts-speedtest.sh` 只精确替换 `github.com` 那一行；`start-maa.sh` 在启动前也会把宿主 `/etc/hosts` 里的 codeload IP 同步进 Wine 前缀。三个地方都检查过，定时器不会再把它改坏。
+
+这不是 Lutris 的问题，Lutris 只负责启动 Wine。
 
 ## 8. 其他网络坑
 
