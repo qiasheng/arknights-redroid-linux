@@ -286,6 +286,7 @@ lutris lutris:rungameid/1794300000
 | 提示 419 个文件缺失 | 文件名被按 CP866 解码（不是真缺文件） | `python3 scripts/fix-maa-filenames.py --apply` |
 | GPU 警告 `驱动信息无法读取` | Wine 读不到 AMD 驱动版本 | 可忽略，实测 OCR/推理正常 |
 | MAA 更新失败 | `MAA.Updater.exe` 在 Wine 下不稳定 | 手动下载完整包，覆盖时保留 `config/` |
+| 资源更新 404 / 下载失败 | `/etc/hosts` 或 Wine hosts 把 `codeload.github.com` 指错 | 见 [03 第 7.1 节](03-网络与MTU.md#71-github-能打开maa-资源更新却-404) |
 
 日志位置：
 
