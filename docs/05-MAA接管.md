@@ -321,7 +321,151 @@ maa run cn_daily
 
 > 注意：maa-cli 与 Wine 版**不要同时连同一个容器**。两个控制器同时截图、点击，会互相干扰。
 
-## 10. 安全提醒
+## 10. 开机自启动
+
+容器用 **systemd 系统服务**，MAA 用 **systemd 用户服务**（GUI 需要图形会话）。
+
+### 10.1 容器：`redroid-arknights.service`
+
+```ini
+# /etc/systemd/system/redroid-arknights.service
+[Unit]
+Description=Redroid Arknights container (redroid-arknights, 60fps)
+After=redroid-setup.service local-fs.target
+Requires=redroid-setup.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/podman start redroid-arknights
+ExecStop=/usr/bin/podman stop --time 10 redroid-arknights
+
+[Install]
+WantedBy=multi-user.target
+```
+
+两个 drop-in（照抄崩铁容器的做法）：
+
+```ini
+# /etc/systemd/system/redroid-arknights.service.d/10-requires-mounts.conf
+[Unit]
+RequiresMountsFor=/home/<you>/redroid-arknights
+```
+
+```ini
+# /etc/systemd/system/redroid-arknights.service.d/20-mtu.conf
+[Service]
+ExecStartPost=/usr/local/sbin/redroid-fix-mtu redroid-arknights
+```
+
+启用：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now redroid-arknights.service
+systemctl status redroid-arknights.service
+```
+
+`podman start` 对已经运行的容器也返回成功，所以手动启动过再 `systemctl start` 不会重复创建。
+
+### 10.2 MAA：`maa-arknights.service`
+
+MAA 是 GUI 程序，放用户服务，并挂到 `graphical-session.target`：
+
+```ini
+# ~/.config/systemd/user/maa-arknights.service
+[Unit]
+Description=MAA for redroid-arknights (Wine/Lutris)
+After=graphical-session.target
+Wants=graphical-session.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/home/<you>/Games/MAA
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/<you>/Games/MAA/start-maa.sh
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=30
+
+[Install]
+WantedBy=graphical-session.target
+```
+
+`start-maa.sh` 做三件事：等 5556 的 ADB、补私有 DNS/常亮/分辨率、用 Lutris 启动 MAA。核心逻辑：
+
+```bash
+#!/usr/bin/env bash
+set -u
+export PATH=/usr/local/bin:/usr/bin:/bin
+SERIAL=127.0.0.1:5556
+
+for _ in $(seq 1 90); do
+    adb connect "$SERIAL" >/dev/null 2>&1 || true
+    if timeout 5 adb -s "$SERIAL" shell true >/dev/null 2>&1; then break; fi
+    sleep 2
+done
+
+adb -s "$SERIAL" shell settings put global private_dns_mode off || true
+adb -s "$SERIAL" shell settings put global captive_portal_mode 0 || true
+adb -s "$SERIAL" shell svc power stayon true || true
+adb -s "$SERIAL" shell wm size 1920x1080 || true
+adb -s "$SERIAL" shell wm density 320 || true
+
+exec /usr/bin/lutris lutris:rungameid/1794300000
+```
+
+启用：
+
+```bash
+chmod +x ~/Games/MAA/start-maa.sh
+systemctl --user daemon-reload
+systemctl --user enable --now maa-arknights.service
+systemctl --user status maa-arknights.service
+```
+
+> `WantedBy=graphical-session.target` 意味着**登录图形桌面后**才启动。如果机器没有自动登录，MAA 不会在「刚开机、还没登录」时出现；容器不受影响，仍然是开机即起。需要真正的无人值守，得配自动登录。
+
+### 10.3 让 MAA 自动开始任务
+
+只启动 GUI 不会自动点「开始」。要完全挂机，在 MAA 里打开：
+
+`设置` → `启动设置` → **启动后自动开始**（配置键 `Gui.StartUpSettings.RunDirectly`）。
+
+或者直接改 `config/gui.new.json`：
+
+```json
+"StartUpSettings": {
+  "RunDirectly": true
+}
+```
+
+对应的任务队列（开始唤醒 → 理智作战 → 基建 → 公招 → 信用 → 奖励）会按顺序执行。第一次建议在旁边看一遍，确认不会误吃理智药 / 加急许可。
+
+### 10.4 验证
+
+```bash
+# 容器服务
+systemctl is-enabled redroid-arknights.service
+systemctl status redroid-arknights.service
+
+# MAA 用户服务
+systemctl --user is-enabled maa-arknights.service
+systemctl --user status maa-arknights.service
+
+# MAA 窗口标题应该带 (5556) - 官服
+xdotool search --name 'MAA' getwindowname %@
+```
+
+重启后如果 MAA 没起来，先看：
+
+```bash
+journalctl --user -u maa-arknights.service -n 50 --no-pager
+```
+
+## 11. 安全提醒
 
 - MAA 配置里不要放账号密码；国服登录态在游戏容器里，MAA 不保存。
 - 分享 `gui.new.json` / 日志前，先删掉 `AdbPath` 里的用户名、`Address` 里的内网 IP、以及任何 token。
