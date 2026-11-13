@@ -123,7 +123,7 @@ adb -s 127.0.0.1:5556 shell input tap 960 770
 | 镜像 | `docker.io/redroid/redroid:11.0.0-latest`（Android 11 / SDK 30） |
 | 容器名 | `redroid-arknights`，`0.0.0.0:5556 → 5555` |
 | 数据目录 | `~/redroid-arknights`（bind 到容器 `/data`） |
-| 显示 | 1920×1080 / 320 dpi / **30 Hz**（redroid 默认，可改 60） |
+| 显示 | 1920×1080 / 320 dpi / **60 Hz**（容器启动参数 `redroid_fps=60`） |
 | 游戏 | 明日方舟国服 2.7.x，`adb install --abi arm64-v8a` |
 | ARM 翻译层 | ChromeOS Android 13 zork libndk v0.2.3 |
 | MAA | v6.22.0，Lutris + Wine（dwproton-11.0-14），客户端类型「官服」 |
