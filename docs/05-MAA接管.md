@@ -280,6 +280,7 @@ lutris lutris:rungameid/1794300000
 | `adb server version doesn't match` | 宿主 adb server 版本旧 | 宿主 `adb kill-server`，重启 MAA |
 | 设备列表有 5555 和 5556 | 崩铁容器也在跑 | 地址写死 `127.0.0.1:5556` |
 | 截图全黑 | 屏幕休眠 / 分辨率不对 | `svc power stayon true`；确认 16:9 |
+| 主界面点不动 / 找不到弹窗 | 模态弹窗被挡住或跑到屏幕外 | `scripts/rescue-maa-windows.sh --list`，再跑一次去掉 `--list` |
 | 能截图但点不动 | 触控模式不对 | 换 `MiniTouch` / `MaaTouch` / `ADB` 逐个试 |
 | 点开始后一直「连接中」 | 容器里游戏没起 / adb 掉线 | `adb devices`、`pidof`、看 MAA 日志 |
 | 提示 419 个文件缺失 | 文件名被按 CP866 解码（不是真缺文件） | `python3 scripts/fix-maa-filenames.py --apply` |
