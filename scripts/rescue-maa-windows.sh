@@ -49,6 +49,7 @@ skip_title() {
 
 echo "屏幕 ${sw}x${sh}，MAA PID: $(echo "$pids" | tr '\n' ' ')"
 candidates=()
+rows=()
 for id in "${ids[@]}"; do
     name=$(xdotool getwindowname "$id" 2>/dev/null || true)
     eval "$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || echo 'X=0 Y=0 WIDTH=0 HEIGHT=0')"
@@ -58,14 +59,20 @@ for id in "${ids[@]}"; do
 
     state=$(xprop -id "$id" _NET_WM_STATE 2>/dev/null || true)
     trans=$(xprop -id "$id" WM_TRANSIENT_FOR 2>/dev/null || true)
-    kind="normal"
-    if [[ "$state" == *MODAL* ]] || [[ "$trans" == *"window id"* ]]; then
-        kind="dialog"
+    wtype=$(xprop -id "$id" _NET_WM_WINDOW_TYPE 2>/dev/null || true)
+    kind="normal"; prio=0
+    if [[ "$state" == *MODAL* ]] || [[ "$trans" == *"window id"* ]] || [[ "$wtype" == *DIALOG* ]]; then
+        kind="dialog"; prio=1
     fi
 
     printf '  [%s] %sx%s @ %s,%s  %s  (%s)\n' "$id" "$WIDTH" "$HEIGHT" "$X" "$Y" "$name" "$kind"
-    candidates+=("$id")
+    rows+=("$prio $id")
 done
+
+# 普通窗口先处理，dialog/modal 最后处理，确保弹窗在最上面
+if [ "${#rows[@]}" -gt 0 ]; then
+    mapfile -t candidates < <(printf '%s\n' "${rows[@]}" | sort -k1,1n -k2,2n | awk '{print $2}')
+fi
 
 if [ "${#candidates[@]}" -eq 0 ]; then
     echo "没有可操作的顶层窗口。完整窗口列表："
