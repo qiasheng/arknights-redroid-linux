@@ -198,6 +198,65 @@ sudo nsenter -t "$CPID" -n ping -M do -s 1464 -c 3 8.8.8.8
 # 4) 实际下载：进游戏跑一次资源更新，观察是否还会长时间 0 速度
 ```
 
+## 7.1 GitHub 能打开，MAA 资源更新却 404
+
+这是另一个很隐蔽的网络坑，和 MTU 无关。
+
+**现象**：浏览器能正常打开 GitHub，但 MAA 检查资源更新时日志里是：
+
+```text
+Start to download file from "https://github.com/MaaAssistantArknights/MaaResource/archive/refs/heads/main.zip"
+HTTP: NotFound GET https://github.com/MaaAssistantArknights/MaaResource/zip/refs/heads/main
+```
+
+**根因**：`/etc/hosts` 里把 `codeload.github.com` 指到了一个错误的 GitHub 节点：
+
+```text
+20.205.243.166 codeload.github.com
+```
+
+`20.205.243.166` 是 GitHub 的网页节点，不是 codeload。请求 codeload 的 zip 路径时，它会 301 回 `github.com/.../zip/...`，而那个路径本身是 404。
+
+浏览器访问的是 `github.com`，所以看起来“GitHub 完全正常”；MAA 下载资源包走的是 `codeload.github.com`，于是只有它失败。
+
+验证：
+
+```bash
+grep codeload /etc/hosts
+
+# 错误 IP：应该看到 301，最后 404
+curl -sSI --max-time 10 --resolve codeload.github.com:443:20.205.243.166   https://codeload.github.com/MaaAssistantArknights/MaaResource/zip/refs/heads/main | head
+
+# 正确 IP：应该看到 200 + application/zip
+curl -sSI --max-time 10 --resolve codeload.github.com:443:140.82.112.9   https://codeload.github.com/MaaAssistantArknights/MaaResource/zip/refs/heads/main | head
+```
+
+**修复宿主**：
+
+```bash
+sudo sed -i 's/^20\.205\.243\.166\([[:space:]]\+\)codeload\.github\.com/140.82.112.9\1codeload.github.com/' /etc/hosts
+grep codeload /etc/hosts
+```
+
+**还要修 Wine 的前缀**：MAA 跑在 Wine 里，Wine 使用的是前缀里的 hosts 文件，不读宿主的 `/etc/hosts`：
+
+```bash
+WINEPREFIX=~/Games/maa-prefix
+echo '140.82.112.9 codeload.github.com' >> \
+  "$WINEPREFIX/drive_c/windows/system32/drivers/etc/hosts"
+```
+
+> 这个文件里默认只有 `127.0.0.1 localhost`。加完重启 MAA。
+
+**验证 MAA**：重启后日志应该变成：
+
+```text
+HTTP: OK GET https://codeload.github.com/MaaAssistantArknights/MaaResource/zip/refs/heads/main
+Remove download temp file X:\Games\MAA\MaaResourceGithub.zip.temp
+```
+
+如果 `140.82.112.9` 不通，可以试 `140.82.113.9` / `140.82.114.9`（同一组 codeload 节点）。这不是 Lutris 的问题，Lutris 只负责启动 Wine。
+
 ## 8. 其他网络坑
 
 - **不要把容器改成 `--network host`**：redroid 的 ADB 端口和宿主网络混在一起，容易和别的服务冲突；而且 MTU 问题依旧存在（只是换了个接口）。
