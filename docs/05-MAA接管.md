@@ -445,6 +445,17 @@ systemctl --user status maa-arknights.service
 
 对应的任务队列（开始唤醒 → 理智作战 → 基建 → 公招 → 信用 → 奖励）会按顺序执行。第一次建议在旁边看一遍，确认不会误吃理智药 / 加急许可。
 
+同时把「启动时最小化」关掉（`Gui.MinimizeOnStartup = false`）。否则 MAA 启动后缩在任务栏里，弹窗/报错也跟着被藏起来，很容易出现「主界面点不动、又找不到弹窗」：
+
+```json
+"Gui": {
+  "MinimizeOnStartup": false,
+  "MinimizeToTray": false
+}
+```
+
+> **不要用 MAA 自带的「开机自启」开关。** Wine + 管理员权限下它会弹一个「管理员权限启动不支持开机自启」的模态警告，而且设置不会生效。用上面的 systemd 用户服务就够了；看到这个警告框直接按回车/点「好的」关掉即可。
+
 ### 10.4 验证
 
 ```bash
