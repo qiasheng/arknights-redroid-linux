@@ -4,6 +4,8 @@
 
 **适用场景**：Linux（没有 Windows、不用官方 PC 客户端）→ redroid 容器跑 Android 版明日方舟 → MAA（Wine / Lutris）通过 ADB 接管。
 
+> 实体机旁路：把方舟从 redroid 迁到 Samsung Galaxy Z Flip5（SM-F7310，**无 root**）的完整记录见 [docs/08-实体机-Samsung-Flip5.md](docs/08-实体机-Samsung-Flip5.md)。
+
 **一句话结论**：整套方案能稳定跑。卡得最久的「进游戏几十秒后被静默杀掉」，根因不是翻译层、不是 MAA、不是网络，而是 **redroid 镜像派生出的 `ro.build.fingerprint` 有 102 字符，超过 Android 属性可读上限（92 字节含结尾 `\0`，实际最长 91 字符），腾讯 TenProtect 读到空值后判定环境被篡改，主动结束游戏进程**。在 `/system/build.prop` 末尾追加一条 90 字符的合法指纹即可。
 
 ---
@@ -198,6 +200,7 @@ adb -s 127.0.0.1:5556 logcat -d -b all | grep -iE 'arknights|tprt|ace|GP7|ndk_tr
 | [docs/05-MAA接管.md](docs/05-MAA接管.md) | Lutris + Wine、adb.exe、MAA 配置、任务队列 |
 | [docs/06-排错手册.md](docs/06-排错手册.md) | 症状 → 原因 → 验证命令 → 处理 |
 | [docs/07-踩坑记录.md](docs/07-踩坑记录.md) | 走过的弯路，以及为什么那些方向是错的 |
+| [docs/08-实体机-Samsung-Flip5.md](docs/08-实体机-Samsung-Flip5.md) | 同机型无 root 迁移：ADB、锁屏/Game Booster、亮度、MAA CLI、systemd 定时与强制重启 |
 | [scripts/start-arknights.sh](scripts/start-arknights.sh) | 一键：起容器 + 补网络/设置 + 校验 + 可选起游戏 |
 | [scripts/fix-fingerprint.sh](scripts/fix-fingerprint.sh) | 修复指纹（**必做**），带备份、校验、重启 |
 | [scripts/fix-maa-filenames.py](scripts/fix-maa-filenames.py) | 修复 MAA 的「419 个文件缺失」（中文名被按 CP866 解码） |
