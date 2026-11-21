@@ -200,7 +200,7 @@ adb -s 127.0.0.1:5556 logcat -d -b all | grep -iE 'arknights|tprt|ace|GP7|ndk_tr
 | [docs/05-MAA接管.md](docs/05-MAA接管.md) | Lutris + Wine、adb.exe、MAA 配置、任务队列 |
 | [docs/06-排错手册.md](docs/06-排错手册.md) | 症状 → 原因 → 验证命令 → 处理 |
 | [docs/07-踩坑记录.md](docs/07-踩坑记录.md) | 走过的弯路，以及为什么那些方向是错的 |
-| [docs/08-实体机-Samsung-Flip5.md](docs/08-实体机-Samsung-Flip5.md) | 同机型无 root 迁移：ADB、锁屏/Game Booster、亮度、MAA CLI、systemd 定时与强制重启 |
+| [docs/08-实体机-Samsung-Flip5.md](docs/08-实体机-Samsung-Flip5.md) | 同机型无 root 迁移：ADB、锁屏/Game Booster、亮度、系统更新、MAA CLI、systemd 定时与强制重启 |
 | [scripts/start-arknights.sh](scripts/start-arknights.sh) | 一键：起容器 + 补网络/设置 + 校验 + 可选起游戏 |
 | [scripts/fix-fingerprint.sh](scripts/fix-fingerprint.sh) | 修复指纹（**必做**），带备份、校验、重启 |
 | [scripts/fix-maa-filenames.py](scripts/fix-maa-filenames.py) | 修复 MAA 的「419 个文件缺失」（中文名被按 CP866 解码） |

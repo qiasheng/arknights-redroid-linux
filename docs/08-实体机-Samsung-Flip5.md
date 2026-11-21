@@ -4,6 +4,8 @@
 
 不包含账号、玩家 UID、设备序列号、局域网 IP、SMTP 授权码或任何登录凭据；需要填设备序列号的地方统一写成 `$DEVICE`。
 
+> **2026-11-22 状态更新**：肉鸽等级已满，`maa-rogue.service` 已停用，`maa-rogue-stop.timer` 已 `disable`，`~/.cache/maa/rogue.enabled` 已删除，`maa-daily.service` 里的停肉鸽/续肉鸽钩子也已移除；手机所有可控音量已设为 0，勿扰为“无干扰”。下文的肉鸽定时和自动续跑是迁移时的配置，恢复肉鸽时需要按原样加回。
+
 ## 调试过程（按发现顺序）
 
 1. **画面出现黑边**：一开始用 `wm size 1920x1080` 把 1080×1920 的面板改成横屏，结果安全区被钉在顶部，应用窗口变成 `[0,167][1920,1080]`。改回 `wm size reset` / `wm density reset` 后原生 1080p 满屏。
@@ -99,6 +101,53 @@ adb -s "$DEVICE" shell 'wm size; wm density; settings get system user_rotation; 
 ```
 
 注意：`user_rotation` / `accelerometer_rotation` 在回到桌面等场景可能被系统改回去；游戏自身会锁横屏，MAA 运行时通常不受影响。关键是**不要保留 `wm size` 覆盖**。
+
+### 禁用系统更新（国行）
+
+国行三星的系统更新由 `com.wssyncmldm` 和 `com.sec.android.soagent` 负责；直接停用这两个包，再落两个全局开关。**不需要 root**：
+
+```bash
+adb -s "$DEVICE" shell '
+  settings put global ota_disable_automatic_update 1
+  settings put global galaxy_system_update_block 1
+  pm disable-user --user 0 com.wssyncmldm
+  pm disable-user --user 0 com.sec.android.soagent
+'
+```
+
+校验：
+
+```bash
+adb -s "$DEVICE" shell '
+  for p in com.wssyncmldm com.sec.android.soagent com.samsung.android.fotaprovider com.samsung.android.sdm.config; do
+    printf "%-38s " "$p"
+    if pm list packages "$p" 2>/dev/null | grep -q "$p"; then
+      dumpsys package "$p" | grep -m1 -oE "enabled=[0-9]+"
+    else
+      echo "未安装"
+    fi
+  done
+  echo "ota_disable_automatic_update=$(settings get global ota_disable_automatic_update)"
+  echo "galaxy_system_update_block=$(settings get global galaxy_system_update_block)"
+'
+```
+
+预期：
+
+```text
+com.wssyncmldm          enabled=3
+com.sec.android.soagent enabled=3
+com.samsung.android.fotaprovider 未安装
+com.samsung.android.sdm.config   未安装
+ota_disable_automatic_update=1
+galaxy_system_update_block=1
+```
+
+说明：
+
+- `enabled=3` 是 `DISABLED_USER`，重启后仍然有效；系统 OTA / 恢复出厂可能重新启用，换机后重新执行即可。
+- 这两个包只管系统更新，不影响游戏、ADB、MAA。
+- 没有禁用 Galaxy Store（`com.sec.android.app.samsungapps`）；它管应用更新，不是系统 OTA。如果连应用自动更新也不想要，需要另外在 Galaxy Store 设置里关。
 
 ### 禁用三星 Game Tools 的自动触摸锁
 
