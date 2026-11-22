@@ -14,6 +14,30 @@
 4. **`maa` CLI 跑完不退出**：任务日志已经 `AllTasksCompleted`，但进程卡在 `Assistant::~Assistant()` 的 `std::thread::join()`，导致每日脚本等不到退出、也不发邮件。最后把 `CloseDown` 从日常/肉鸽任务里去掉。
 5. **肉鸽停后跑日常仍停在肉鸽界面**：MAA 的 `StartUp` 看到游戏已经启动，不会强制重启。改为在每日/肉鸽脚本启动前 `adb shell am force-stop com.hypergryph.arknights`，等 3 秒再让 MAA 拉起。
 6. **Award / Depot 失败**：`OperProgress` 之后游戏停在干员页，`AwardBegin` 连试 20 次认不出。每日任务在 `Award` 前补一次 `StartUp` 回主界面。
+7. **手机重启后 ADB 全断**：`adb devices` 看到 `no permissions`，不是手机端 USB 调试被关，而是宿主机 adb server 还拿着重启前的 USB 节点。`adb kill-server` + `adb start-server` 即可恢复；`phone-keepawake` 已加自动恢复逻辑，只在 `no permissions` 时重启 server。
+
+## 重启验证（2026-11-22）
+
+重启手机后逐项复查，以下都还在：
+
+```text
+wm size              1080x1920（无 override）
+wm density           480
+user_rotation        1（accelerometer_rotation=0）
+screen_off_timeout   2147483647
+stay_on_while_plugged_in 15
+screen_brightness    0 / 手动
+locksettings         true / lockscreen.disabled=1
+Game Tools           disabled
+game touch lock      0 / 0
+OTA 两个包           disabled-user
+ota_disable_automatic_update / galaxy_system_update_block = 1 / 1
+勿扰                 ZEN_MODE_NO_INTERRUPTIONS
+```
+
+`svc power stayon true` 是运行时设置，重启后不保证保留；由 `stay_on_while_plugged_in` + `phone-keepawake` 兜底。
+
+ADB 重启后出现过一次 `no permissions`，原因和修复见上面第 7 条。
 
 ## 设备
 
@@ -280,7 +304,16 @@ ADB=${ADB:-/usr/bin/adb}
 DEV=${1:-"${DEVICE:-}"}
 [ -n "$DEV" ] || exit 0
 
-"$ADB" -s "$DEV" get-state >/dev/null 2>&1 || exit 0
+"$ADB" -s "$DEV" get-state >/dev/null 2>&1 || {
+    # 手机重启后，宿主机 adb server 可能还拿着旧的 USB 节点，报 no permissions。
+    # 只在这种情况下重启 server，避免平时误伤 redroid。
+    if "$ADB" devices 2>/dev/null | grep -qE "^${DEV}[[:space:]]+no permissions"; then
+        "$ADB" kill-server >/dev/null 2>&1
+        "$ADB" start-server >/dev/null 2>&1
+        sleep 2
+    fi
+    "$ADB" -s "$DEV" get-state >/dev/null 2>&1 || exit 0
+}
 
 state=$("$ADB" -s "$DEV" shell dumpsys power 2>/dev/null \
         | grep -m1 -oE 'mWakefulness=[A-Za-z]+' | cut -d= -f2)
